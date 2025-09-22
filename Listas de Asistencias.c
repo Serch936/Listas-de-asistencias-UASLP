@@ -23,6 +23,35 @@ typedef struct dia{
     int día
 }TDia;
 
+void inicializa_dia(TDia *d){
+    d->arriba = NULL;
+    d->abajo = NULL;
+    d->alumnosDelDía = NULL;
+    d->día = 0;
+}
+
+void inicializa_lista(TLista *l){
+    l->siguiente = NULL;
+    l->anterior = NULL;
+    l->alumnos = NULL;
+    l->cantidad = 0;
+}
+
+void inicializa_alumno(TAlumno *a){
+    a->nombre = NULL;
+    a->asistencia = false;
+    a->siguiente = NULL;
+    a->anterior = NULL;
+}
+
 int main(){
+    TAlumno a;
+    TLista l;
+    TDia d;
+
+    inicializa_alumno(&a);
+    inicializa_lista(&l);
+    inicializa_dia(&d);
+    
     return 0;
 }
