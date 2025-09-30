@@ -32,6 +32,9 @@ typedef struct dia{
 void ordenar_alfabeticamente(TDIA *cab);
 void ordenar_por_ID(TDIA *cab);
 void mostrar_listas(TDIA *cab);
+void mostrar_alumno(TDIA *cab, TNOMBRE nombre);
+void mostrar_dia(TDIA *cab, TFECHA fecha);
+void mostrar_ID(TDIA *cab, int ID);
 void crea_dia(TDIA **cab_dia, TALUMNO *lista_original, TFECHA fecha);
 void agrega_alumnos(TALUMNO *cab, TALUMNO *inicio, int cantidad_alumnos);
 TALUMNO *copiar_lista_alumnos(TALUMNO *original);
@@ -45,8 +48,8 @@ void mostrarlista(Nodo* cabeza);
 */
 
 int main(){
-    int opcion, cont = 1, cantidad_alumnos = 0;
-    char nombre[50];
+    int opcion, cantidad_alumnos = 0;
+    TNOMBRE nombre; //Estoy corrigiendo al momento de buscar a una alumno y ordenarlo con su nombre
     TALUMNO *cab, *inicio;
     TDIA *cab_dia, *lista_original;
 
@@ -73,72 +76,121 @@ int main(){
                 int opc;
 
                 if(cab == NULL) {
-                    printf("La lista está vacía\n");
+                    printf("La lista esta vacia\n");
                     printf("Regresando al menú principal...\n");
+                    break;
                 }else{
                     printf("\n---MENU MOSTRAR---\n");
                     printf("1. Mostrar listas completas\n");
                     printf("2. Mostrar un alumno en particular\n");
                     printf("3. Mostrar un dia en particular\n");
+                    printf("4. Mostrar un ID en particular\n");
+                    printf("5. Regresar al menu principal\n");
                     printf("Elige una opcion: ");
                     scanf("%i", &opc);
 
                     switch(opc){
                         case 1:{
-                            mostrar_listas(&cab);
+                            mostrar_listas(&cab_dia);
                             break;
                         }
+
                         case 2:{
-                            printf("Ingresa el nombre del alumno a buscar: ");
-                            gets(nombre);
-                            //buscar_alumno(cab, nombre);
+                            TNOMBRE nombre;
+
+                            printf("Ingresa los siguientes datos del alumno a buscar: ");
+                            printf("Nombre(s): ");
+                            gets(nombre.nombres);
+                            printf("Apellido paterno: ");
+                            gets(nombre.apell_p);
+                            printf("Apellido materno: ");
+                            gets(nombre.apell_m);
+
+                            mostrar_alumno(cab_dia, nombre);
+
                             break;
                         }
+
                         case 3:{
-                            printf("Ingresa el numero del dia a buscar: ");
-                            int dia;
-                            scanf("%i", &dia);
-                            //buscar_dia(cab_dia, dia);
+                            TFECHA fecha;
+
+                            printf("Imgresa el numero del dia: ");
+                            scanf("%i", &fecha.dia);
+                            printf("Ingresa el numero del mes: ");
+                            scanf("%i", &fecha.mes);
+                            printf("Ingresa el numero del año: ");
+                            scanf("%i", &fecha.año);
+
+                            mostrar_dia(cab_dia, fecha);
+
                             break;
                         }
+
+                        case 4:{
+                            int ID;
+
+                            printf("Ingresa el ID del alumno a buscar: ");
+                            scanf("%i", &ID);
+
+                            mostrar_ID(cab_dia, ID);
+
+                            break;
+                        }
+
                         default:
                             printf("Opcion no valida\n");
                     }
                 }
                 break;
             }
+
             case 2:{
-                TDIA *aux;
                 TFECHA fecha;
                 
-                if(aux == NULL) {
-                    printf("La lista está vacía\n");
+                if(cab == NULL) {
+                    printf("La lista de alumnos esta vacia\n");
                     printf("Regresando al menú principal...\n");
+                    break;
                 }else{
-                    crea_dia(&aux, cab, fecha);
-                    
-                    tomar_asistencia(aux);
+                    crea_dia(&cab_dia, cab, fecha);
+                    tomar_asistencia(cab_dia);
                 }
                 break;
             }
+
             case 3:{
                 int opc;
                 
-                printf("---MENU ORDENAR---\n");
-                printf("1. Ordenar alfabeticamente\n");
-                printf("2. Ordenar por ID\n");
-                printf("Elige una opcion: ");
-                scanf("%i", &opc);
+                if(cab == NULL) {
+                    printf("La lista esta vacia\n");
+                    printf("Regresando al menú principal...\n");
+                    break;
+                }else{
+                    printf("---MENU ORDENAR---\n");
+                    printf("1. Ordenar alfabeticamente\n");
+                    printf("2. Ordenar por ID\n");
+                    printf("3. Regresar al menu principal\n");
+                    printf("Elige una opcion: ");
+                    scanf("%i", &opc);
 
-                switch(opc){
-                    case 1:{
-                        ordenar_alfabeticamente(&cab);
-                        break;
+                    switch(opc){
+                        case 1:{
+                            ordenar_alfabeticamente(&cab_dia);
+                            break;
+                        }
+
+                        case 2:{
+                            ordenar_por_ID(&cab_dia);
+                            break;
+                        }
+
+                        default:
+                            printf("Opcion no valida\n");
                     }
                 }
-
                 break;
             }
+
             case 4:
                 printf("Saliendo...\n");
                 break;
@@ -282,23 +334,111 @@ void mostrar_listas(TDIA *cab){
     dia_aux = cab;
 
     if(dia_aux == NULL){
-        printf("La lista de dias está vacía\n");
+        printf("La lista de dias esta vacia\n");
         return;
     }
 
     while(dia_aux != NULL){
         alumno_aux = dia_aux->lista_alumnos;
 
-        printf("Listas usadas:\n\n");
-        printf("Fecha: %i/%i/%i\n", dia_aux->fecha.dia, dia_aux->fecha.mes, dia_aux->fecha.año);
+        printf("Listas totales de asistencias usadas:\n");
+        printf("\tFecha: %i/%i/%i\n", dia_aux->fecha.dia, dia_aux->fecha.mes, dia_aux->fecha.año);
         
         while(alumno_aux != NULL){
-            printf("\tID: %i, Nombre: %s %s %s, Asistencia: %s\n", alumno_aux->ID, alumno_aux->nombre.nombres, alumno_aux->nombre.apell_p, alumno_aux->nombre.apell_m, alumno_aux->asistencias? "Presente" : "Ausente"); //Nms, no sabía que se podía poner un "if" en una printf de esa manera :o
+            printf("\t\tID: %i, Nombre: %s %s %s, Asistencia: %s\n", alumno_aux->ID, alumno_aux->nombre.nombres, alumno_aux->nombre.apell_p, alumno_aux->nombre.apell_m, alumno_aux->asistencias? "Presente" : "Ausente"); //Nms, no sabía que se podía poner un "if" en una printf de esa manera :o
             alumno_aux = alumno_aux->siguiente;
         }
 
         dia_aux = dia_aux->siguiente;
         printf("\n");
+    }
+}
+
+void mostrar_alumno(TDIA *cab, TNOMBRE nombre){
+    TDIA *dia_aux;
+    TALUMNO *alumno_aux;
+    bool encontrado = false;
+
+    dia_aux = cab;
+
+    printf("Asistencias del alumno %s %s %s:\n", nombre.nombres, nombre.apell_p, nombre.apell_m);
+
+    while(dia_aux != NULL){
+        alumno_aux = dia_aux->lista_alumnos;
+
+        while(alumno_aux != NULL){
+            if((strcmp(alumno_aux->nombre.nombres, nombre.nombres) == 0) && (strcmp(alumno_aux->nombre.apell_p, nombre.apell_p) == 0) && (strcmp(alumno_aux->nombre.apell_m, nombre.apell_m) == 0)){
+                printf("\t%i %i %i: %s\n", dia_aux->fecha.dia, dia_aux->fecha.mes, dia_aux->fecha.año, alumno_aux->asistencias? "Presente" : "Ausente");
+                encontrado = true;
+
+                break;
+            }
+            
+            alumno_aux = alumno_aux->siguiente;
+        }
+
+        dia_aux = dia_aux->siguiente;
+    }
+
+    if(!encontrado){
+        printf("No se encontro al alumno en las listas de asistencia\n");
+    }
+}
+
+void mostrar_dia(TDIA *cab, TFECHA fecha){
+    TDIA *dia_aux;
+    TALUMNO *alumno_aux;
+    bool encontrado = false;
+
+    dia_aux = cab;
+
+    while(dia_aux != NULL){
+        if((dia_aux->fecha.dia == fecha.dia) && (dia_aux->fecha.mes == fecha.mes) && (dia_aux->fecha.año == fecha.año)){
+            alumno_aux = dia_aux->lista_alumnos;
+
+            printf("Asistencias del dia %i/%i/%i:\n", fecha.dia, fecha.mes, fecha.año);
+
+            while(alumno_aux != NULL){
+                printf("\tID: %i, Nombre: %s %s %s, Asistencia: %s\n", alumno_aux->ID, alumno_aux->nombre.nombres, alumno_aux->nombre.apell_p, alumno_aux->nombre.apell_m, alumno_aux->asistencias? "Presente" : "Ausente");
+                alumno_aux = alumno_aux->siguiente;
+            }
+
+            encontrado = true;
+            break;
+        }
+
+        dia_aux = dia_aux->siguiente;
+    }
+}
+
+void mostrar_ID(TDIA *cab, int ID){
+    TDIA *dia_aux;
+    TALUMNO *alumno_aux;
+    bool encontrado = false;
+
+    dia_aux = cab;
+
+    printf("Asistencias del alumno con el ID-%i:\n", ID);
+
+    while(dia_aux != NULL){
+        alumno_aux = dia_aux->lista_alumnos;
+
+        while(alumno_aux != NULL){
+            if(alumno_aux->ID == ID){
+                printf("\t%i %i %i: %s\n", dia_aux->fecha.dia, dia_aux->fecha.mes, dia_aux->fecha.año, alumno_aux->asistencias? "Presente" : "Ausente");
+                encontrado = true;
+
+                break;
+            }
+            
+            alumno_aux = alumno_aux->siguiente;
+        }
+
+        dia_aux = dia_aux->siguiente;
+    }
+
+    if(!encontrado){
+        printf("No se encontro al alumno en las listas de asistencia\n");
     }
 }
 
