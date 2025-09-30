@@ -142,7 +142,25 @@ int main(){
 void mostrar_listas(TDIA *cab){
     TDIA *dia_aux;
     TALUMNO *alumno_aux;
-    
+
+    dia_aux = cab;
+
+    if(dia_aux == NULL){
+        printf("La lista de dias está vacía\n");
+        return;
+    }
+
+    while(dia_aux != NULL){
+        alumno_aux = dia_aux->lista_alumnos;
+
+        printf("Listas usadas:\n\n");
+        printf("Fecha: %i/%i/%i\n", dia_aux->fecha.dia, dia_aux->fecha.mes, dia_aux->fecha.año);
+        
+        while(alumno_aux != NULL){
+            printf("\tID: %i, Nombre: %s %s %s, Asistencia: %s\n", alumno_aux->ID, alumno_aux->nombre.nombres, alumno_aux->nombre.apell_p, alumno_aux->nombre.apell_m, alumno_aux->asistencias? "Presente" : "Ausente"); //Nms, no sabía que se podía poner un "if" en una printf de esa manera :o
+            alumno_aux = alumno_aux->siguiente;
+        }
+    }
 }
 
 void crea_dia(TDIA **cab_dia, TALUMNO *lista_original, TFECHA fecha){
