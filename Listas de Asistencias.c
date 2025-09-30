@@ -9,9 +9,16 @@ typedef struct nombre {
     char apellido_materno[35];
 } TNombre;
 
+typedef struct asistencia{
+    char fecha[11];
+    bool presente;
+    struct asistencia *siguiente;
+}TAsistencia
+
 typedef struct alumno {
     TNombre nombre;
-    bool asistencia;
+    int clave;
+    TAsistencia *asistencias;
     struct alumno *siguiente;
     struct alumno *anterior;
 } TAlumno;
@@ -22,7 +29,7 @@ typedef struct lista {
 } TLista;
 
 typedef struct dia {
-    int dia; // <-- Cambié 'día' por 'dia'
+    int dia; 
     TLista lista_alumnos;
     struct dia *siguiente;
 } TDia;
@@ -32,18 +39,11 @@ void inicializa_lista(TLista *l) {
     l->cantidad = 0;
 }
 
-TDia *inicializa_dia(int dia) {
-    TDia *nuevo = (TDia *)malloc(sizeof(TDia));
-    nuevo->dia = dia;
-    inicializa_lista(&(nuevo->lista_alumnos));
-    nuevo->siguiente = NULL;
-    return nuevo;
-}
-
-void agregar_alumno(TLista *lista, TNombre nombre) {
+void agregar_alumno(TLista *lista, TNombre nombre, int clave) {
     TAlumno *nuevo = (TAlumno *)malloc(sizeof(TAlumno));
     nuevo->nombre = nombre;
-    nuevo->asistencia = false;
+    nuevo->clave = clave;
+    nuevo->asistencia = NULL;
     nuevo->siguiente = NULL;
     nuevo->anterior = NULL;
 
@@ -60,21 +60,22 @@ void agregar_alumno(TLista *lista, TNombre nombre) {
     lista->cantidad++;
 }
 
-void eliminar_alumno(TLista *lista, const char *nombre_completo) {
+void eliminar_alumno(TLista *lista, int clave) {
     TAlumno *actual = lista->alumnos;
     while (actual != NULL) {
-        char buffer[130];
-        snprintf(buffer, sizeof(buffer), "%s %s %s",
-                 actual->nombre.nombres,
-                 actual->nombre.apellido_paterno,
-                 actual->nombre.apellido_materno);
-        if (strcmp(buffer, nombre_completo) == 0) {
+        if(actual->clave == clave){
             if (actual->anterior)
                 actual->anterior->siguiente = actual->siguiente;
             if (actual->siguiente)
                 actual->siguiente->anterior = actual->anterior;
             if (actual == lista->alumnos)
                 lista->alumnos = actual->siguiente;
+            TAsistencia *as = actual->asistencia;
+            while(as != NULL){
+                TAsistencia *tmp = as;
+                as = as->siguiente;
+                free(tmp);
+            }
             free(actual);
             lista->cantidad--;
             printf("Alumno eliminado exitosamente.\n");
@@ -85,67 +86,128 @@ void eliminar_alumno(TLista *lista, const char *nombre_completo) {
     printf("Alumno no encontrado.\n");
 }
 
-void marcar_asistencia(TLista *lista, const char *nombre_completo, bool asistencia) {
+void ordenar alumnos(TLista *lista){
+    if(lista->cantidad < 2) return;
+    for (TAlumno *i = lista->alumnos; i != NULL; i = i->siguiente) {
+	for (TAlumno *j = i->siguiente; j != NULL; j = j->siguiente) {
+		if (strcmp(i->nombre.apellido_paterno, j->nombre.apellido_paterno) > 0 ||
+			(strcmp(i->nombre.apellido_paterno, j->nombre.apellido_paterno) == 0 &&
+				strcmp(i->nombre.apellido_materno, j->nombre.apellido_materno) > 0) ||
+			(strcmp(i->nombre.apellido_paterno, j->nombre.apellido_paterno) == 0 &&
+				strcmp(i->nombre.apellido_materno, j->nombre.apellido_materno) == 0 &&
+				strcmp(i->nombre.nombres, j->nombre.nombres) > 0)) {
+			TAlumno temp = *i;
+			*i = *j;
+			*j = temp;
+            TAlumno *tmp_s = i->siguiente;
+			i->siguiente = j->siguiente;
+			j->siguiente = tmp_s;
+			TAlumno *tmp_a = i->anterior;
+			i->anterior = j->anterior;
+			j->anterior = tmp_a;
+            }
+        }
+    }
+}
+
+
+void marcar_asistencia(TLista *lista) {
+    if(lista->alumnos == NULL){
+        printf("No hay alumnos registrados\n");
+        return;
+    }
+    char fecha[11];
+    char respuesta[10];
+    printf("Ingrese la fecha (dd/mm/aaaa): ");
+    scanf("%s", fecha);
     TAlumno *actual = lista->alumnos;
     while (actual != NULL) {
-        char buffer[130];
-        snprintf(buffer, sizeof(buffer), "%s %s %s",
+        printf("| Nombre: %s %s %s | Clave: %d |\n",
                  actual->nombre.nombres,
                  actual->nombre.apellido_paterno,
-                 actual->nombre.apellido_materno);
-        if (strcmp(buffer, nombre_completo) == 0) {
-            actual->asistencia = asistencia;
-            printf("Asistencia marcada exitosamente.\n");
-            return;
+                 actual->nombre.apellido_materno,
+                 actual->clave);
+        printf("| Asistencia (s/n): ");
+        scanf("%s", respuesta);
+        TAsistencia *nueva = (TAsistencia *)malloc(sizeof(TAsistencia));
+		strcpy(nueva->fecha, fecha);
+		nueva->presente = (respuesta[0] == 's' || respuesta[0] == 'S');
+		nueva->siguiente = actual->asistencias;
+		actual->asistencias = nueva;
         }
         actual = actual->siguiente;
     }
     printf("Alumno no encontrado.\n");
 }
 
-void mostrar_lista_asistencias_dia(TDia *dia) {
-    printf("\nLista de asistencias del dia %d:\n", dia->dia);
-    TAlumno *actual = dia->lista_alumnos.alumnos;
-    if (actual == NULL) {
-        printf("No hay alumnos registrados.\n");
-        return;
-    }
+void mostrar_lista_asistencias_dia(TLista *lista) {
+   if (lista->alumnos == NULL) {
+		printf("No hay alumnos registrados.\n");
+		return;
+	}
+	
+	char fecha[11];
+	printf("Ingrese la fecha (dd/mm/aaaa) para mostrar asistencias: ");
+	scanf("%s", fecha);
+	
+	ordenar_alumnos(lista);
+	
+	printf("\n------LISTA DE ASISTENCIA %s------\n", fecha);
+	TAlumno *actual = lista->alumnos;
+	bool encontrado = false;
     while (actual != NULL) {
-        printf("%s %s %s - %s\n",
-               actual->nombre.nombres,
-               actual->nombre.apellido_paterno,
-               actual->nombre.apellido_materno,
-               actual->asistencia ? "Presente" : "Ausente");
-        actual = actual->siguiente;
-    }
+		TAsistencia *as = actual->asistencias;
+		while (as != NULL) {
+			if (strcmp(as->fecha, fecha) == 0) {
+				printf("| Nombre: %s %s %s | Clave: %d | Asistencia: %c |\n",
+					   actual->nombre.nombres,
+					   actual->nombre.apellido_paterno,
+					   actual->nombre.apellido_materno,
+					   actual->clave,
+					   as->presente ? 's' : 'n');
+				encontrado = true;
+				break;
+			}
+			as = as->siguiente;
+		}
+		actual = actual->siguiente;
+	}
+	
+	if (!encontrado) {
+		printf("No hay asistencias registradas para esta fecha.\n");
+	}
 }
 
-// Faltaba esta función
-void mostrar_lista_asistencias_alumno(TDia *dias, const char *nombre_completo) {
-    TDia *dia = dias;
+void mostrar_lista_asistencias_alumno(TLista *lista, int clave) {
+    TAlumno *actual = lista->alumnos;
     bool encontrado = false;
-    while (dia != NULL) {
-        TAlumno *actual = dia->lista_alumnos.alumnos;
-        while (actual != NULL) {
-            char buffer[130];
-            snprintf(buffer, sizeof(buffer), "%s %s %s",
+    while (actual != NULL) {
+        if (actual->clave == clave) {
+			TAsistencia *as = actual->asistencias;
+			printf("Asistencias de %s %s %s (Clave: %d):\n",
                      actual->nombre.nombres,
                      actual->nombre.apellido_paterno,
-                     actual->nombre.apellido_materno);
-            if (strcmp(buffer, nombre_completo) == 0) {
-                printf("Dia %d: %s\n", dia->dia, actual->asistencia ? "Presente" : "Ausente");
-                encontrado = true;
-            }
-            actual = actual->siguiente;
-        }
-        dia = dia->siguiente;
-    }
-    if (!encontrado)
-        printf("Alumno no encontrado en ningun dia.\n");
+                     actual->nombre.apellido_materno,
+                     actual->clave);
+            while (as != NULL) {
+				printf("| Fecha: %s | Asistencia: %c |\n",
+					   as->fecha,
+					   as->presente ? 's' : 'n');
+				as = as->siguiente;
+			}
+			encontrado = true;
+			break;
+		}
+		actual = actual->siguiente;
+	}
+	
+	if (!encontrado) {
+		printf("Alumno no encontrado.\n");
+	}
 }
 
 // Menú modularizado
-void menu_agregar_alumnos(TDia *dia) {
+void menu_agregar_alumnos(TLista *lista) {
     int cantidad;
     printf("¿Cuántos alumnos desea agregar? ");
     scanf("%d", &cantidad);
@@ -153,8 +215,8 @@ void menu_agregar_alumnos(TDia *dia) {
 
     for (int i = 0; i < cantidad; i++) {
         TNombre nombre;
+        int clave;
         printf("Alumno %d:\n", i + 1);
-
         printf("  Nombres: ");
         fgets(nombre.nombres, sizeof(nombre.nombres), stdin);
         nombre.nombres[strcspn(nombre.nombres, "\n")] = 0;
@@ -167,57 +229,35 @@ void menu_agregar_alumnos(TDia *dia) {
         fgets(nombre.apellido_materno, sizeof(nombre.apellido_materno), stdin);
         nombre.apellido_materno[strcspn(nombre.apellido_materno, "\n")] = 0;
 
-        agregar_alumno(&(dia->lista_alumnos), nombre);
+        printf("\tClave: ");
+		scanf("%d", &clave);
+		getchar();
+
+        agregar_alumno(lista, nombre, clave);
     }
     printf("Alumnos agregados exitosamente.\n");
 }
 
 void menu_eliminar_alumno(TDia *dia) {
-    char nombre_completo[130];
-    printf("Ingrese el nombre completo del alumno a eliminar (Nombres ApellidoPaterno ApellidoMaterno):\n");
-    fgets(nombre_completo, sizeof(nombre_completo), stdin);
-    nombre_completo[strcspn(nombre_completo, "\n")] = 0;
-    eliminar_alumno(&(dia->lista_alumnos), nombre_completo);
+    int clave;
+	printf("Clave del alumno a eliminar: ");
+	scanf("%d", &clave);
+	getchar();
+	eliminar_alumno(lista, clave);
 }
 
-void menu_marcar_asistencia(TDia *dia) {
-    TAlumno *actual = dia->lista_alumnos.alumnos;
-    char respuesta[10];
-    if (actual == NULL) {
-        printf("No hay alumnos registrados.\n");
-        return;
-    }
-    printf("Marcando asistencia para el día %d:\n", dia->dia);
-    while (actual != NULL) {
-        printf("%s %s %s ¿Presente? (s/n): ", 
-            actual->nombre.nombres, 
-            actual->nombre.apellido_paterno, 
-            actual->nombre.apellido_materno);
-        fgets(respuesta, sizeof(respuesta), stdin);
-        respuesta[strcspn(respuesta, "\n")] = 0;
-        actual->asistencia = (respuesta[0] == 's' || respuesta[0] == 'S');
-        actual = actual->siguiente;
-    }
-    printf("Asistencias marcadas exitosamente.\n");
-}
-
-void menu_mostrar_lista_asistencias_dia(TDia *dia) {
-    mostrar_lista_asistencias_dia(dia);
-}
-
-void menu_mostrar_lista_asistencias_alumno(TDia *dias) {
-    char nombre_completo[130];
-    printf("Ingrese el nombre completo del alumno para consultar asistencias (Nombres ApellidoPaterno ApellidoMaterno):\n");
-    fgets(nombre_completo, sizeof(nombre_completo), stdin);
-    nombre_completo[strcspn(nombre_completo, "\n")] = 0;
-    mostrar_lista_asistencias_alumno(dias, nombre_completo);
+void menu_mostrar_lista_asistencias_alumno(TLista *lista) {
+   int clave;
+	printf("Clave del alumno: ");
+	scanf("%d", &clave);
+	getchar();
+	mostrar_lista_asistencias_alumno(lista, clave);
 }
 
 int main() {
-    TDia *dias = NULL;
-    int opcion;
-
-    dias = inicializa_dia(1); // Inicializa el primer día
+   TLista lista;
+	inicializa_lista(&lista);
+	int opcion;
 
     do {
         printf("\n---MENU---\n");
@@ -233,19 +273,19 @@ int main() {
 
         switch (opcion) {
             case 1:
-                menu_agregar_alumnos(dias);
+                menu_agregar_alumnos(&lisa);
                 break;
             case 2:
-                menu_eliminar_alumno(dias);
+                menu_eliminar_alumno(&lista);
                 break;
             case 3:
-                menu_marcar_asistencia(dias);
+                marcar_asistencia(&lista);
                 break;
             case 4:
-                menu_mostrar_lista_asistencias_dia(dias);
+                mostrar_lista_asistencias_dia(&lista);
                 break;
             case 5:
-                menu_mostrar_lista_asistencias_alumno(dias);
+                menu_mostrar_lista_asistencias_alumno(&lista);
                 break;
             case 6:
                 printf("Saliendo del programa...\n");
